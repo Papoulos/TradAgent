@@ -1,56 +1,57 @@
-import langextract as lx
 import textwrap
 import config
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.chat_models import ChatOllama
+
 
 def create_glossary(source_text: str, max_words: int = 100):
     """
     Creates a glossary of ambiguous words, proper nouns, and untranslatable words
-    from the source text using langextract.
+    from the source text using a large language model.
     """
-    prompt = textwrap.dedent("""\
-        Extract ambiguous words, proper nouns, and words that should not be translated from the text.
-        Use exact text for extractions. Do not paraphrase or overlap entities.
-        Provide meaningful attributes for each entity to add context.
+    if config.LLM_TOOL == "gemini":
+        llm = ChatGoogleGenerativeAI(model=config.GLOSSARY_CREATION_MODEL)
+    elif config.LLM_TOOL == "ollama":
+        llm = ChatOllama(model=config.OLLAMA_GLOSSARY_CREATION_MODEL)
+    else:
+        raise ValueError(f"Unsupported LLM tool: {config.LLM_TOOL}")
+
+    prompt = textwrap.dedent(f"""\
+        You are an expert in linguistics and translation. Your task is to analyze the following text and extract a glossary of terms that require special attention during translation.
+
+        Please identify the following types of terms:
+        1.  **Proper Nouns:** Names of people, places, organizations, and specific titles (e.g., "Mr. Smith", "Wildemount", "the Dwendalian Empire").
+        2.  **Ambiguous Words:** Words that could have multiple meanings depending on the context (e.g., "bank", "rock", "lead").
+        3.  **Untranslatable or Technical Terms:** Words that should be kept in their original language or that are specific to a domain (e.g., "Dungeons & Dragons", "arcane", "deity").
+
+        Analyze the text provided below and extract these terms.
+
+        **Instructions:**
+        - Return a single line of text.
+        - The terms should be separated by commas.
+        - Do not add any explanation, preamble, or conclusion.
+        - Use the exact text for extractions. Do not paraphrase.
+        - Limit the list to a maximum of {max_words} of the most important terms.
+
+        **Text to Analyze:**
+        ---
+        {source_text}
+        ---
+
+        **Glossary:**
         """)
 
-    examples = [
-        lx.data.ExampleData(
-            text="Mr. Smith went to the bank.",
-            extractions=[
-                lx.data.Extraction(
-                    extraction_class="proper_noun",
-                    extraction_text="Mr. Smith",
-                    attributes={"reason": "Person's name"}
-                ),
-                lx.data.Extraction(
-                    extraction_class="ambiguous_word",
-                    extraction_text="bank",
-                    attributes={"reason": "Can mean a financial institution or a river bank"}
-                ),
-            ]
-        ),
-        lx.data.ExampleData(
-            text="The cat sat on the mat.",
-            extractions=[]
-        )
-    ]
+    result = llm.invoke(prompt)
 
-    result = lx.extract(
-        text_or_documents=source_text,
-        prompt_description=prompt,
-        examples=examples,
-        model_id=config.GLOSSARY_CREATION_MODEL,
-    )
+    content = result.content.strip()
+    if not content:
+        return []
 
-    glossary = []
-    if result and result.extractions:
-        for extraction in result.extractions:
-            glossary.append(extraction.extraction_text)
+    glossary = [term.strip() for term in content.split(',')]
+    glossary = [term for term in glossary if term]
 
     return glossary[:max_words]
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_community.chat_models import ChatOllama
 
 def evaluate_glossary(glossary: list[str]):
     """
