@@ -49,13 +49,19 @@ def create_glossary(source_text: str, max_words: int = 100):
 
     return glossary[:max_words]
 
-from langchain_google_genai import ChatGoogleGenerativeAi
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.chat_models import ChatOllama
 
 def evaluate_glossary(glossary: list[str]):
     """
     Evaluates the glossary using a large language model.
     """
-    llm = ChatGoogleGenerativeAi(model=config.GLOSSARY_EVALUATION_MODEL)
+    if config.LLM_TOOL == "gemini":
+        llm = ChatGoogleGenerativeAI(model=config.GEMINI_EVALUATION_MODEL)
+    elif config.LLM_TOOL == "ollama":
+        llm = ChatOllama(model=config.OLLAMA_EVALUATION_MODEL)
+    else:
+        raise ValueError(f"Unsupported LLM tool: {config.LLM_TOOL}")
 
     prompt = f"Here is a glossary of terms: {', '.join(glossary)}. Please review it for accuracy and suggest any improvements."
 
