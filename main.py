@@ -1,5 +1,5 @@
 import argparse
-from src.preprocessing import create_glossary, evaluate_glossary
+from agents.preprocessing import create_glossary, evaluate_glossary
 from dotenv import load_dotenv
 
 load_dotenv()
