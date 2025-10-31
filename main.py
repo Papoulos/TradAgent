@@ -16,7 +16,7 @@ def main():
             return
 
         print("Running preprocessing step...")
-        with open(args.source, 'r') as f:
+        with open(args.source, 'r', encoding='utf-8') as f:
             source_text = f.read()
 
         glossary = create_glossary(source_text)
