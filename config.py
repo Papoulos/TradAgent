@@ -6,6 +6,7 @@ LLM_TOOL = "gemini"
 
 # Models for preprocessing
 GLOSSARY_CREATION_MODEL = "gemini-1.5-flash"
+TARGET_LANGUAGE = "French"
 
 # Configuration for Gemini
 GEMINI_EVALUATION_MODEL = "gemini-pro"
