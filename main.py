@@ -23,10 +23,10 @@ def main():
             source_text = f.read()
 
         glossary = create_glossary(source_text)
-        print("Generated Glossary:")
-        print(glossary)
 
         if glossary:
+            print("Generated Glossary:")
+            print(json.dumps(glossary, ensure_ascii=False, indent=4))
             # Save the glossary to a file
             base_name = os.path.splitext(args.source)[0]
             glossary_filename = f"{base_name}_glossary.json"
@@ -37,6 +37,8 @@ def main():
             evaluation = evaluate_glossary(glossary)
             print("\nGlossary Evaluation:")
             print(evaluation)
+        else:
+            print("Glossary generation failed.")
 
     elif args.step == 'translate':
         print("Running translation step...")

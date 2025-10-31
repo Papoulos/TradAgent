@@ -25,7 +25,7 @@ def create_glossary(source_text: str, max_words: int = 100):
 
     print("🤖 Sending to LLM for validation...")
     prompt = f"""
-You are a terminology expert. You will select from the list below only the terms that are **specific to the book** and **require inclusion in a translation glossary**.
+You are a terminology expert. Your task is to create a translation glossary for the following book.
 
 **Book Context**
 - Title: {config.BOOK_CONTEXT.get('book_title', 'N/A')}
@@ -34,15 +34,22 @@ You are a terminology expert. You will select from the list below only the terms
 - Style: {config.BOOK_CONTEXT.get('author_style', 'N/A')}
 - Audience: {config.BOOK_CONTEXT.get('target_audience', 'N/A')}
 - Cultural Context: {config.BOOK_CONTEXT.get('cultural_context', 'N/A')}
+- Target Language: {config.TARGET_LANGUAGE}
 
 **Instructions:**
-1. Keep only the terms that are **ambiguous, metaphorical, or culturally specific**.
-2. Exclude generic words.
-3. Prefer terms that have **social, psychological, or cultural significance** in the text depending of the context.
-4. Output a JSON list of selected English terms only.
+1. From the candidate terms provided, select only the terms that are **ambiguous, metaphorical, culturally specific, or essential to the story's meaning.**
+2. **Exclude common nouns and generic words** that do not require a specific translation in the context of the book.
+3. For each selected term, provide a translation in **{config.TARGET_LANGUAGE}**.
+4. Return the result as a **JSON object**, where keys are the original English terms and values are their {config.TARGET_LANGUAGE} translations.
 
 **Candidate Terms (from automatic extraction):**
 {json.dumps(candidate_terms, ensure_ascii=False, indent=2)}
+
+**Example JSON Output:**
+{{
+  "example term 1": "translation 1",
+  "example term 2": "translation 2"
+}}
 """
 
     if config.LLM_TOOL == "gemini":
@@ -56,14 +63,14 @@ You are a terminology expert. You will select from the list below only the terms
     response = result.content.strip()
 
     try:
-        # Look for a JSON array first, as requested in the prompt
-        match = re.search(r"\[.*\]", response, re.DOTALL)
+        # Look for a JSON object first, as requested in the prompt
+        match = re.search(r"\{.*\}", response, re.DOTALL)
         if match:
             json_str = match.group(0)
             glossary = json.loads(json_str)
         else:
-            # Fallback for JSON object responses
-            match = re.search(r"\{.*\}", response, re.DOTALL)
+            # Fallback for JSON array responses
+            match = re.search(r"\[.*\]", response, re.DOTALL)
             if match:
                 json_str = match.group(0)
                 glossary = json.loads(json_str)
@@ -72,12 +79,12 @@ You are a terminology expert. You will select from the list below only the terms
         print(f"✅ Translated Glossary: {len(glossary)} entries.")
     except Exception as e:
         print(f"⚠️ JSON parsing error ({e}). Raw response:\n{response}")
-        glossary = []
+        glossary = {}
 
     return glossary
 
 
-def evaluate_glossary(glossary: list[str]):
+def evaluate_glossary(glossary: dict[str, str]):
     """
     Evaluates the glossary using a large language model.
     """
@@ -88,7 +95,8 @@ def evaluate_glossary(glossary: list[str]):
     else:
         raise ValueError(f"Unsupported LLM tool: {config.LLM_TOOL}")
 
-    prompt = f"Here is a glossary of terms: {', '.join(glossary)}. Please review it for accuracy and suggest any improvements."
+    terms = list(glossary.keys())
+    prompt = f"Here is a glossary of terms: {', '.join(terms)}. Please review it for accuracy and suggest any improvements."
 
     result = llm.invoke(prompt)
     return result.content
