@@ -50,6 +50,8 @@ You are a terminology expert. Your task is to create a translation glossary for 
   "example term 1": "translation 1",
   "example term 2": "translation 2"
 }}
+
+**IMPORTANT: Your response must contain only the JSON object, without any introductory text, explanations, or code block markers.**
 """
 
     if config.LLM_TOOL == "gemini":
@@ -113,6 +115,8 @@ You are a terminology expert. Your task is to refine a translation glossary.
   "example term 1": "translation 1",
   "example term 2": "translation 2"
 }}
+
+**IMPORTANT: Your response must contain only the JSON object, without any introductory text, explanations, or code block markers.**
 """
 
     result = llm.invoke(prompt)
