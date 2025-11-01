@@ -86,8 +86,9 @@ You are a terminology expert. Your task is to create a translation glossary for 
 
 def evaluate_glossary(glossary: dict[str, str]):
     """
-    Evaluates the glossary using a large language model.
+    Filters the glossary by removing common nouns.
     """
+    print("🤖 Filtering glossary with LLM...")
     if config.LLM_TOOL == "gemini":
         llm = ChatGoogleGenerativeAI(model=config.GEMINI_EVALUATION_MODEL)
     elif config.LLM_TOOL == "ollama":
@@ -95,8 +96,38 @@ def evaluate_glossary(glossary: dict[str, str]):
     else:
         raise ValueError(f"Unsupported LLM tool: {config.LLM_TOOL}")
 
-    terms = list(glossary.keys())
-    prompt = f"Here is a glossary of terms: {', '.join(terms)}. Please review it for accuracy and suggest any improvements."
+    prompt = f"""
+You are a terminology expert. Your task is to refine a translation glossary.
+
+**Instructions:**
+1. Review the following JSON glossary.
+2. **Remove any entries that are common nouns or generic words** (e.g., "time", "night", "friend").
+3. Keep only the terms that are **ambiguous, metaphorical, culturally specific, or essential to the story's meaning.**
+4. Return the filtered glossary as a **valid JSON object**.
+
+**Glossary to Filter:**
+{json.dumps(glossary, ensure_ascii=False, indent=2)}
+
+**Example JSON Output:**
+{{
+  "example term 1": "translation 1",
+  "example term 2": "translation 2"
+}}
+"""
 
     result = llm.invoke(prompt)
-    return result.content
+    response = result.content.strip()
+
+    try:
+        match = re.search(r"\{.*\}", response, re.DOTALL)
+        if match:
+            json_str = match.group(0)
+            filtered_glossary = json.loads(json_str)
+            print(f"✅ Filtered Glossary: {len(filtered_glossary)} entries.")
+            return filtered_glossary
+        else:
+            print("⚠️ No JSON object found in the LLM response for filtering.")
+            return glossary
+    except Exception as e:
+        print(f"⚠️ JSON parsing error during filtering ({e}). Raw response:\n{response}")
+        return glossary
