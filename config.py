@@ -8,12 +8,6 @@ LLM_TOOL = "gemini"
 GLOSSARY_CREATION_MODEL = "gemini-1.5-flash"
 TARGET_LANGUAGE = "French"
 
-# Configuration for Gemini
-GEMINI_EVALUATION_MODEL = "gemini-pro"
-
-# Configuration for Ollama
-OLLAMA_EVALUATION_MODEL = "mistral"
-
 # Book context
 BOOK_CONTEXT = {
     "book_title": "The Lord of the Rings",
