@@ -2,13 +2,16 @@ import json
 import config
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_models import ChatOllama
+from agents.review import review_and_merge_text
 
 def translate_text(text_blocks: list, glossary: dict, author_profile: dict):
     """
-    Translates text blocks using an LLM, incorporating context and stylistic elements.
+    Translates text blocks using an LLM and a reviewer agent for stylistic consistency.
     """
     translated_blocks = []
+    final_reviewed_text_parts = []
     total_blocks = len(text_blocks)
+    last_reviewed_block_index = -1
 
     print("🤖 Starting translation...")
 
@@ -62,5 +65,38 @@ preserving the author’s tone, humor, and narrative rhythm.
         translated_segment = result.content.strip()
         translated_blocks.append(translated_segment)
 
-    print("✅ Translation complete.")
-    return "\n\n".join(translated_blocks)
+        if (i + 1) % 5 == 0:
+            print(f"🔬 Reviewing blocks {i - 3} to {i + 1}...")
+
+            segments_to_review = translated_blocks[i-4:i+1]
+            start_index = max(0, i - 9)
+            end_index = i + 1
+            source_window = text_blocks[start_index:end_index]
+
+            reviewed_part = review_and_merge_text(
+                translated_segments=segments_to_review,
+                source_segments=source_window,
+                glossary=glossary_terms,
+                author_profile=style_summary
+            )
+            final_reviewed_text_parts.append(reviewed_part)
+            last_reviewed_block_index = i
+
+    remaining_blocks = translated_blocks[last_reviewed_block_index + 1:]
+    if remaining_blocks:
+        print(f"🔬 Reviewing the final {len(remaining_blocks)} blocks...")
+
+        start_index_source = last_reviewed_block_index + 1
+        source_window_start = max(0, start_index_source - (10 - len(remaining_blocks)))
+        source_window = text_blocks[source_window_start:]
+
+        reviewed_part = review_and_merge_text(
+            translated_segments=remaining_blocks,
+            source_segments=source_window,
+            glossary=glossary_terms,
+            author_profile=style_summary
+        )
+        final_reviewed_text_parts.append(reviewed_part)
+
+    print("✅ Translation and review complete.")
+    return "\n\n".join(final_reviewed_text_parts)
