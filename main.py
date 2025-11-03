@@ -6,6 +6,7 @@ from agents.profiling import create_author_profile
 from agents.splitting import split_text
 from agents.translation import translate_text
 from dotenv import load_dotenv
+import config
 
 load_dotenv()
 
@@ -14,7 +15,6 @@ def main():
     parser = argparse.ArgumentParser(description='Traduction tool using LangChain and LangExtract.')
     parser.add_argument('--step', type=str, help='The step to run (preprocessing, profile, translate, etc.).')
     parser.add_argument('--source', type=str, help='The source file to translate.')
-    parser.add_argument('--author', type=str, help='The author of the source file.')
     args = parser.parse_args()
 
     if args.step == 'preprocessing':
@@ -43,15 +43,13 @@ def main():
         if not args.source:
             print("Please specify a source file using --source.")
             return
-        if not args.author:
-            print("Please specify an author using --author.")
-            return
 
-        print("Running author profiling step...")
+        author_name = config.BOOK_CONTEXT.get('author', 'Unknown')
+        print(f"Running author profiling step for {author_name}...")
         with open(args.source, 'r', encoding='utf-8') as f:
             source_text = f.read()
 
-        profile = create_author_profile(args.author, source_text)
+        profile = create_author_profile(author_name, source_text)
 
         if profile:
             base_name = os.path.splitext(args.source)[0]
