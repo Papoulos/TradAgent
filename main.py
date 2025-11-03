@@ -1,7 +1,7 @@
 import argparse
 import json
 import os
-from agents.preprocessing import create_glossary, evaluate_glossary
+from agents.preprocessing import create_glossary
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,17 +25,12 @@ def main():
         glossary = create_glossary(source_text)
 
         if glossary:
-            print("Generated Glossary:")
-            print(json.dumps(glossary, ensure_ascii=False, indent=4))
-
-            filtered_glossary = evaluate_glossary(glossary)
-
-            # Save the filtered glossary to a file
+            # Save the glossary to a file
             base_name = os.path.splitext(args.source)[0]
             glossary_filename = f"{base_name}_glossary.json"
             with open(glossary_filename, 'w', encoding='utf-8') as f:
-                json.dump(filtered_glossary, f, ensure_ascii=False, indent=4)
-            print(f"\n✅ Filtered glossary saved to {glossary_filename}")
+                json.dump(glossary, f, ensure_ascii=False, indent=4)
+            print(f"\n✅ Glossary saved to {glossary_filename}")
 
         else:
             print("Glossary generation failed.")
