@@ -6,7 +6,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_models import ChatOllama
 
 
-def create_glossary(source_text: str, max_words: int = 100):
+def create_glossary(source_text: str, author_profile: dict, max_words: int = 100):
     """
     Creates a glossary of ambiguous words, proper nouns, and untranslatable words
     from the source text using YAKE and a large language model.
@@ -23,17 +23,19 @@ def create_glossary(source_text: str, max_words: int = 100):
     candidate_terms = [kw for kw, score in keywords]
     print(f"✅ {len(candidate_terms)} terms extracted.")
 
+    # Prepare the author context for the prompt
+    author_name = author_profile.get('author', 'N/A')
+    style_analysis = author_profile.get('style_analysis', {})
+    style_summary = "\n".join([f"- {k.replace('_', ' ').title()}: {v}" for k, v in style_analysis.items()])
+
     print("🤖 Sending to LLM for validation...")
     prompt = f"""
-You are a terminology expert. Your task is to create a translation glossary for the following book.
+You are a terminology expert. Your task is to create a translation glossary for a text.
 
-**Book Context**
-- Title: {config.BOOK_CONTEXT.get('book_title', 'N/A')}
-- Author: {config.BOOK_CONTEXT.get('author', 'N/A')}
-- Theme: {config.BOOK_CONTEXT.get('theme_description', 'N/A')}
-- Style: {config.BOOK_CONTEXT.get('author_style', 'N/A')}
-- Audience: {config.BOOK_CONTEXT.get('target_audience', 'N/A')}
-- Cultural Context: {config.BOOK_CONTEXT.get('cultural_context', 'N/A')}
+**Author Context**
+- Author: {author_name}
+- Style Summary:
+{style_summary}
 - Target Language: {config.TARGET_LANGUAGE}
 
 **Instructions:**

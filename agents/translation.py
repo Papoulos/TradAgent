@@ -12,9 +12,10 @@ def translate_text(text_blocks: list, glossary: dict, author_profile: dict):
 
     print("🤖 Starting translation...")
 
-    style_summary = author_profile.get("style_analysis", "Not available.")
-    glossary_terms = json.dumps(glossary, ensure_ascii=False, indent=2)
     author_name = author_profile.get("author", "Unknown")
+    style_analysis = author_profile.get("style_analysis", {})
+    style_summary = "\n".join([f"- {k.replace('_', ' ').title()}: {v}" for k, v in style_analysis.items()])
+    glossary_terms = json.dumps(glossary, ensure_ascii=False, indent=2)
 
     for i, segment in enumerate(text_blocks):
         print(f"🔄 Translating block {i + 1}/{total_blocks}...")
@@ -30,8 +31,9 @@ Translate the following English text into {config.TARGET_LANGUAGE},
 preserving the author’s tone, humor, and narrative rhythm.
 
 **Context:**
-- Author Profile: {author_name}
-- Style Analysis: {style_summary}
+- Author: {author_name}
+- Style Analysis:
+{style_summary}
 - Glossary: {glossary_terms}
 - Previous Translated Segment (for continuity): {previous_translated_segment}
 - Next Segment (for context): {next_segment}
