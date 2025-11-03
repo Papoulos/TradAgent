@@ -13,47 +13,51 @@ load_dotenv()
 
 def main():
     parser = argparse.ArgumentParser(description='Traduction tool using LangChain and LangExtract.')
-    parser.add_argument('--step', type=str, help='The step to run (preprocessing, profile, translate, etc.).')
-    parser.add_argument('--source', type=str, help='The source file to translate.')
+    parser.add_argument('--step', type=str, required=True, help='The step to run (preprocessing, profile, translate).')
+    parser.add_argument('--source', type=str, required=True, help='The source file to translate.')
+    parser.add_argument('--author', type=str, help='The author of the source file (required for the "profile" step).')
     args = parser.parse_args()
 
+    # Create a dedicated directory for the translation project
+    project_dir = os.path.splitext(args.source)[0]
+    os.makedirs(project_dir, exist_ok=True)
+
     if args.step == 'preprocessing':
-        if not args.source:
-            print("Please specify a source file using --source.")
+        profile_filename = os.path.join(project_dir, f"{os.path.basename(project_dir)}_profile.json")
+        if not os.path.exists(profile_filename):
+            print("Error: The profile file does not exist. Please run the 'profile' step first.")
             return
 
         print("Running preprocessing step...")
         with open(args.source, 'r', encoding='utf-8') as f:
             source_text = f.read()
 
-        glossary = create_glossary(source_text)
+        with open(profile_filename, 'r', encoding='utf-8') as f:
+            author_profile = json.load(f)
+
+        glossary = create_glossary(source_text, author_profile)
 
         if glossary:
-            # Save the glossary to a file
-            base_name = os.path.splitext(args.source)[0]
-            glossary_filename = f"{base_name}_glossary.json"
+            glossary_filename = os.path.join(project_dir, f"{os.path.basename(project_dir)}_glossary.json")
             with open(glossary_filename, 'w', encoding='utf-8') as f:
                 json.dump(glossary, f, ensure_ascii=False, indent=4)
             print(f"\n✅ Glossary saved to {glossary_filename}")
-
         else:
             print("Glossary generation failed.")
 
     elif args.step == 'profile':
-        if not args.source:
-            print("Please specify a source file using --source.")
+        if not args.author:
+            print("Please specify an author using --author for the 'profile' step.")
             return
 
-        author_name = config.BOOK_CONTEXT.get('author', 'Unknown')
-        print(f"Running author profiling step for {author_name}...")
+        print(f"Running author profiling step for {args.author}...")
         with open(args.source, 'r', encoding='utf-8') as f:
             source_text = f.read()
 
-        profile = create_author_profile(author_name, source_text)
+        profile = create_author_profile(args.author, source_text)
 
         if profile:
-            base_name = os.path.splitext(args.source)[0]
-            profile_filename = f"{base_name}_profile.json"
+            profile_filename = os.path.join(project_dir, f"{os.path.basename(project_dir)}_profile.json")
             with open(profile_filename, 'w', encoding='utf-8') as f:
                 json.dump(profile, f, ensure_ascii=False, indent=4)
             print(f"\n✅ Author profile saved to {profile_filename}")
@@ -61,15 +65,9 @@ def main():
             print("Author profiling failed.")
 
     elif args.step == 'translate':
-        if not args.source:
-            print("Please specify a source file using --source.")
-            return
-
-        print("Running translation step...")
-        base_name = os.path.splitext(args.source)[0]
-        glossary_filename = f"{base_name}_glossary.json"
-        profile_filename = f"{base_name}_profile.json"
-        translated_filename = f"{base_name}_translated.txt"
+        glossary_filename = os.path.join(project_dir, f"{os.path.basename(project_dir)}_glossary.json")
+        profile_filename = os.path.join(project_dir, f"{os.path.basename(project_dir)}_profile.json")
+        translated_filename = os.path.join(project_dir, f"{os.path.basename(project_dir)}_translated.txt")
 
         try:
             with open(args.source, 'r', encoding='utf-8') as f:
@@ -91,7 +89,7 @@ def main():
         print(f"\n✅ Translated text saved to {translated_filename}")
 
     else:
-        print("Please specify a valid step.")
+        print(f"Unknown step: {args.step}. Please choose from 'preprocessing', 'profile', or 'translate'.")
 
 if __name__ == '__main__':
     main()
