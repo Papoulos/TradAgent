@@ -65,10 +65,12 @@ preserving the author’s tone, humor, and narrative rhythm.
         translated_segment = result.content.strip()
         translated_blocks.append(translated_segment)
 
-        if (i + 1) % 5 == 0:
-            print(f"🔬 Reviewing blocks {i - 3} to {i + 1}...")
+        if len(translated_blocks) > 0 and len(translated_blocks) % 5 == 0:
+            print(f"🔬 Reviewing blocks from {len(translated_blocks) - 4} to {len(translated_blocks)}...")
 
-            segments_to_review = translated_blocks[i-4:i+1]
+            segments_to_review = translated_blocks[-5:]
+
+            # Define the context window for the source text (sliding window of 10 blocks)
             start_index = max(0, i - 9)
             end_index = i + 1
             source_window = text_blocks[start_index:end_index]
