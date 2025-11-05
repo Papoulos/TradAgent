@@ -13,30 +13,31 @@ def review_and_merge_text(translated_segments: list, source_segments: list, glos
     translated_segments_str = "\n---\n".join(translated_segments)
 
     reviewer_prompt = f"""
-You are a bilingual literary editor and reviewer.
+You are a text-processing agent. Your task is to assemble and harmonize a series of translated text segments.
 
-You will receive {num_segments} consecutive translated text segments from English to French,
-along with their original English versions for context.
+**Input:**
+- **Author Profile:** A description of the author's style.
+- **Glossary:** A list of specific terms to be used consistently.
+- **Source Segments:** {num_segments} original English text segments.
+- **Translated Segments:** {num_segments} French translated text segments.
 
-Your job is to:
-1. Verify the **stylistic and tonal continuity** across the {num_segments} segments.
-2. **Smooth transitions** between paragraphs and ensure consistent vocabulary.
-3. **Correct minor translation inconsistencies** (tense, register, rhythm).
-4. Preserve the author's tone as described in the provided profile.
-5. Output the final **merged and refined French text** — no commentary, no explanations.
+**Instructions:**
+1. **Assemble:** Concatenate the provided French translated segments in the order they are given.
+2. **Harmonize:** Make minor corrections to ensure stylistic and tonal continuity, smooth transitions, and consistent vocabulary based on the author profile and glossary.
+3. **Output:** Return *only* the final, clean, merged French text. Do not add any extra text, commentary, or explanations. Do not re-narrate or create a story.
 
 **Author Profile:**
 {author_profile_str}
 
-**Glossary (use consistently):**
+**Glossary:**
 {glossary_terms_str}
 
-**Source excerpts:**
+**Source Segments (for context):**
 ---
 {source_excerpt_str}
 ---
 
-**Translated segments (to review):**
+**Translated Segments (to assemble and harmonize):**
 ---
 {translated_segments_str}
 ---
