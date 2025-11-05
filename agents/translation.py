@@ -4,10 +4,13 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_models import ChatOllama
 from agents.review import review_and_merge_text
 
-def translate_text(text_blocks: list, glossary: dict, author_profile: dict):
+def translate_text(text_blocks: list, glossary: dict, author_profile: dict, max_blocks: int = None):
     """
     Translates text blocks using an LLM and a reviewer agent for stylistic consistency.
     """
+    if max_blocks is not None and max_blocks > 0:
+        text_blocks = text_blocks[:max_blocks]
+
     translated_blocks = []
     final_reviewed_text_parts = []
     total_blocks = len(text_blocks)
