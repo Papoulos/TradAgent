@@ -4,9 +4,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_models import ChatOllama
 from agents.review import review_and_merge_text
 
-def translate_text(text_blocks: list, glossary: dict, author_profile: dict, max_blocks: int = None):
+def translate_text(text_blocks: list, glossary: dict, author_profile: dict, max_blocks: int = None, use_reviewer: bool = False):
     """
-    Translates text blocks using an LLM and a reviewer agent for stylistic consistency.
+    Translates text blocks using an LLM and an optional reviewer agent for stylistic consistency.
     """
     if max_blocks is not None and max_blocks > 0:
         text_blocks = text_blocks[:max_blocks]
@@ -68,12 +68,11 @@ preserving the author’s tone, humor, and narrative rhythm.
         translated_segment = result.content.strip()
         translated_blocks.append(translated_segment)
 
-        if len(translated_blocks) > 0 and len(translated_blocks) % 5 == 0:
+        if use_reviewer and len(translated_blocks) > 0 and len(translated_blocks) % 5 == 0:
             print(f"🔬 Reviewing blocks from {len(translated_blocks) - 4} to {len(translated_blocks)}...")
 
             segments_to_review = translated_blocks[-5:]
 
-            # Define the context window for the source text (sliding window of 10 blocks)
             start_index = max(0, i - 9)
             end_index = i + 1
             source_window = text_blocks[start_index:end_index]
@@ -87,21 +86,25 @@ preserving the author’s tone, humor, and narrative rhythm.
             final_reviewed_text_parts.append(reviewed_part)
             last_reviewed_block_index = i
 
-    remaining_blocks = translated_blocks[last_reviewed_block_index + 1:]
-    if remaining_blocks:
-        print(f"🔬 Reviewing the final {len(remaining_blocks)} blocks...")
+    if use_reviewer:
+        remaining_blocks = translated_blocks[last_reviewed_block_index + 1:]
+        if remaining_blocks:
+            print(f"🔬 Reviewing the final {len(remaining_blocks)} blocks...")
 
-        start_index_source = last_reviewed_block_index + 1
-        source_window_start = max(0, start_index_source - (10 - len(remaining_blocks)))
-        source_window = text_blocks[source_window_start:]
+            start_index_source = last_reviewed_block_index + 1
+            source_window_start = max(0, start_index_source - (10 - len(remaining_blocks)))
+            source_window = text_blocks[source_window_start:]
 
-        reviewed_part = review_and_merge_text(
-            translated_segments=remaining_blocks,
-            source_segments=source_window,
-            glossary=glossary_terms,
-            author_profile=style_summary
-        )
-        final_reviewed_text_parts.append(reviewed_part)
+            reviewed_part = review_and_merge_text(
+                translated_segments=remaining_blocks,
+                source_segments=source_window,
+                glossary=glossary_terms,
+                author_profile=style_summary
+            )
+            final_reviewed_text_parts.append(reviewed_part)
 
-    print("✅ Translation and review complete.")
-    return "\n\n".join(final_reviewed_text_parts)
+        print("✅ Translation and review complete.")
+        return "\n\n".join(final_reviewed_text_parts)
+    else:
+        print("✅ Translation complete (reviewer not activated).")
+        return "\n\n".join(translated_blocks)

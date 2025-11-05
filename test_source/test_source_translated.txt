@@ -1,0 +1,10 @@
+C'est un fichier de test.
+Il a plusieurs lignes.
+C'est la troisième ligne.
+C'est la quatrième ligne.
+C'est la cinquième ligne.
+C'est la sixième ligne.
+C'est la septième ligne.
+C'est la huitième ligne.
+C'est la neuvième ligne.
+C'est la dixième ligne.

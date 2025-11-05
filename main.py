@@ -17,6 +17,7 @@ def main():
     parser.add_argument('--source', type=str, required=True, help='The source file to translate.')
     parser.add_argument('--author', type=str, help='The author of the source file (required for the "profile" step).')
     parser.add_argument('--max-blocks', type=int, help='The maximum number of blocks to translate.')
+    parser.add_argument('--reviewer', action='store_true', help='Activate the reviewer agent.')
     args = parser.parse_args()
 
     # Create a dedicated directory for the translation project
@@ -83,7 +84,7 @@ def main():
             return
 
         text_blocks = split_text(source_text)
-        translated_text = translate_text(text_blocks, glossary, author_profile, args.max_blocks)
+        translated_text = translate_text(text_blocks, glossary, author_profile, args.max_blocks, args.reviewer)
 
         with open(translated_filename, 'w', encoding='utf-8') as f:
             f.write(translated_text)
