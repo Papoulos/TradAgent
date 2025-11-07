@@ -18,38 +18,22 @@ def translate_text(text_blocks: list, glossary: dict, author_profile: dict, max_
 
     print("🤖 Starting translation...")
 
-    author_name = author_profile.get("author", "Unknown")
-    style_analysis = author_profile.get("style_analysis", {})
-    style_summary = "\n".join([f"- {k.replace('_', ' ').title()}: {v}" for k, v in style_analysis.items()])
+    style_summary = "\n".join(
+        [f"- {k.replace('_', ' ').title()}: {v}" for k, v in author_profile.get("style_analysis", {}).items()])
     glossary_terms = json.dumps(glossary, ensure_ascii=False, indent=2)
 
     for i, segment in enumerate(text_blocks):
         print(f"🔄 Translating block {i + 1}/{total_blocks}...")
 
-        previous_translated_segment = translated_blocks[i - 1] if i > 0 else "None"
-        next_segment = text_blocks[i + 1] if i < total_blocks - 1 else "None"
-
         prompt = f"""
 You are a professional literary translator.
 
 **Objective:**
-Translate the following English text into {config.TARGET_LANGUAGE},
-preserving the author’s tone, humor, and narrative rhythm.
-
-**Context:**
-- Author: {author_name}
-- Style Analysis:
-{style_summary}
-- Glossary: {glossary_terms}
-- Previous Translated Segment (for continuity): {previous_translated_segment}
-- Next Segment (for context): {next_segment}
+Translate the following English text into {config.TARGET_LANGUAGE}.
 
 **Instructions:**
-1. Maintain the author’s voice and rhythm.
-2. Use glossary terms exactly as defined.
-3. Ensure transitions are fluid between segments.
-4. Avoid literal translation when a natural {config.TARGET_LANGUAGE} expression exists.
-5. Output ONLY the translated {config.TARGET_LANGUAGE} text.
+1. Maintain a natural and fluid {config.TARGET_LANGUAGE} expression.
+2. Output ONLY the translated {config.TARGET_LANGUAGE} text.
 
 **Text to translate:**
 ---
