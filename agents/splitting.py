@@ -1,9 +1,11 @@
 import tiktoken
 import config
+import os
 
-def split_text(text: str):
+def split_text(text: str, output_dir: str):
     """
-    Splits the text into blocks of approximately a given token size, respecting paragraph boundaries.
+    Splits the text into blocks of approximately a given token size, respecting paragraph boundaries,
+    and saves them as numbered files in the output directory.
     """
     tokenizer = tiktoken.get_encoding("cl100k_base")
 
@@ -29,4 +31,10 @@ def split_text(text: str):
     if current_block:
         blocks.append(current_block)
 
-    return blocks
+    # Save blocks to files
+    for i, block in enumerate(blocks):
+        filename = os.path.join(output_dir, f"{i+1:05d}.txt")
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(block)
+
+    print(f"✅ Text split into {len(blocks)} blocks in directory '{output_dir}'.")
