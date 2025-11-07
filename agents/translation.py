@@ -1,29 +1,29 @@
 import json
+import os
 import config
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_models import ChatOllama
 from agents.review import review_and_merge_text
 
-def translate_text(text_blocks: list, glossary: dict, author_profile: dict, max_blocks: int = None, use_reviewer: bool = False):
+def translate_text(source_dir: str, translated_dir: str, glossary: dict, author_profile: dict, max_blocks: int = None):
     """
-    Translates text blocks using an LLM and an optional reviewer agent for stylistic consistency.
+    Translates text blocks from files in a source directory and saves them to a translated directory.
     """
+
+    source_files = sorted([f for f in os.listdir(source_dir) if f.endswith('.txt')])
+
     if max_blocks is not None and max_blocks > 0:
-        text_blocks = text_blocks[:max_blocks]
+        source_files = source_files[:max_blocks]
 
-    translated_blocks = []
-    final_reviewed_text_parts = []
-    total_blocks = len(text_blocks)
-    last_reviewed_block_index = -1
-
+    total_blocks = len(source_files)
     print("🤖 Starting translation...")
 
-    style_summary = "\n".join(
-        [f"- {k.replace('_', ' ').title()}: {v}" for k, v in author_profile.get("style_analysis", {}).items()])
-    glossary_terms = json.dumps(glossary, ensure_ascii=False, indent=2)
+    for i, filename in enumerate(source_files):
+        print(f"🔄 Translating block {i + 1}/{total_blocks} ({filename})...")
 
-    for i, segment in enumerate(text_blocks):
-        print(f"🔄 Translating block {i + 1}/{total_blocks}...")
+        source_filepath = os.path.join(source_dir, filename)
+        with open(source_filepath, 'r', encoding='utf-8') as f:
+            segment = f.read()
 
         prompt = f"""
 You are a professional literary translator.
@@ -50,45 +50,66 @@ Translate the following English text into {config.TARGET_LANGUAGE}.
 
         result = llm.invoke(prompt)
         translated_segment = result.content.strip()
-        translated_blocks.append(translated_segment)
 
-        if use_reviewer and len(translated_blocks) > 0 and len(translated_blocks) % 5 == 0:
-            print(f"🔬 Reviewing blocks from {len(translated_blocks) - 4} to {len(translated_blocks)}...")
+        translated_filepath = os.path.join(translated_dir, filename)
+        with open(translated_filepath, 'w', encoding='utf-8') as f:
+            f.write(translated_segment)
 
-            segments_to_review = translated_blocks[-5:]
+    print("✅ Translation complete.")
 
-            start_index = max(0, i - 9)
-            end_index = i + 1
-            source_window = text_blocks[start_index:end_index]
 
-            reviewed_part = review_and_merge_text(
-                translated_segments=segments_to_review,
-                source_segments=source_window,
-                glossary=glossary_terms,
-                author_profile=style_summary
-            )
-            final_reviewed_text_parts.append(reviewed_part)
-            last_reviewed_block_index = i
+def review_translated_files(source_dir: str, translated_dir: str, revised_dir: str, glossary: dict, author_profile: dict):
+    """
+    Reviews translated files and saves the harmonized result.
+    """
+    print("🔬 Starting review process...")
 
-    if use_reviewer:
-        remaining_blocks = translated_blocks[last_reviewed_block_index + 1:]
-        if remaining_blocks:
-            print(f"🔬 Reviewing the final {len(remaining_blocks)} blocks...")
+    source_files = sorted([f for f in os.listdir(source_dir) if f.endswith('.txt')])
+    translated_files = sorted([f for f in os.listdir(translated_dir) if f.endswith('.txt')])
 
-            start_index_source = last_reviewed_block_index + 1
-            source_window_start = max(0, start_index_source - (10 - len(remaining_blocks)))
-            source_window = text_blocks[source_window_start:]
+    style_summary = "\n".join(
+        [f"- {k.replace('_', ' ').title()}: {v}" for k, v in author_profile.get("style_analysis", {}).items()])
+    glossary_terms = json.dumps(glossary, ensure_ascii=False, indent=2)
 
-            reviewed_part = review_and_merge_text(
-                translated_segments=remaining_blocks,
-                source_segments=source_window,
-                glossary=glossary_terms,
-                author_profile=style_summary
-            )
-            final_reviewed_text_parts.append(reviewed_part)
+    num_files = len(translated_files)
+    batch_size = 5
+    review_counter = 0
 
-        print("✅ Translation and review complete.")
-        return "\n\n".join(final_reviewed_text_parts)
-    else:
-        print("✅ Translation complete (reviewer not activated).")
-        return "\n\n".join(translated_blocks)
+    for i in range(0, num_files, batch_size):
+        batch_filenames = translated_files[i:i + batch_size]
+        print(f"🔬 Reviewing blocks {i + 1} to {i + len(batch_filenames)}...")
+
+        # Read translated segments for the current batch
+        translated_segments = []
+        for filename in batch_filenames:
+            with open(os.path.join(translated_dir, filename), 'r', encoding='utf-8') as f:
+                translated_segments.append(f.read())
+
+        # Determine the context window for source files
+        start_index_source = i
+        end_index_source = i + len(batch_filenames)
+
+        # Sliding window of 10 for context
+        source_window_start = max(0, end_index_source - 10)
+        source_filenames = source_files[source_window_start:end_index_source]
+
+        source_segments = []
+        for filename in source_filenames:
+            with open(os.path.join(source_dir, filename), 'r', encoding='utf-8') as f:
+                source_segments.append(f.read())
+
+        # Call the review agent
+        reviewed_part = review_and_merge_text(
+            translated_segments=translated_segments,
+            source_segments=source_segments,
+            glossary=glossary_terms,
+            author_profile=style_summary
+        )
+
+        # Save the reviewed part to a new file in the revised directory
+        review_filename = os.path.join(revised_dir, f"reviewed_{review_counter:05d}.txt")
+        with open(review_filename, 'w', encoding='utf-8') as f:
+            f.write(reviewed_part)
+        review_counter += 1
+
+    print("✅ Review complete.")
